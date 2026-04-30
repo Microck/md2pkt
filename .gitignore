@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+.md2pkt/
+*.md2pkt-report.json
+*.ptbuilder.js
+*.ios.txt

@@ -1,0 +1,54 @@
+{
+  "name": "md2pkt",
+  "version": "0.1.0",
+  "description": "Convert Markdown or text-based PDF network instructions into Cisco Packet Tracer .pkt files.",
+  "license": "MIT",
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Microck/md2pkt.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Microck/md2pkt/issues"
+  },
+  "homepage": "https://github.com/Microck/md2pkt#readme",
+  "keywords": [
+    "packet-tracer",
+    "cisco",
+    "ccna",
+    "markdown",
+    "pdf",
+    "network-automation",
+    "cli"
+  ],
+  "bin": {
+    "md2pkt": "dist/cli.js"
+  },
+  "files": [
+    ".github/assets",
+    "dist",
+    "LICENSE",
+    "README.md",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "commander": "14.0.2",
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "vitest": "4.0.15"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
