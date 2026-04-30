@@ -4,7 +4,6 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/md2pkt"><img src="https://img.shields.io/npm/v/md2pkt?style=flat-square&label=npm&color=000000" alt="npm badge"></a>
-  <a href="https://github.com/Microck/md2pkt/actions"><img src="https://img.shields.io/badge/tests-vitest-000000?style=flat-square" alt="test badge"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-mit-000000?style=flat-square" alt="license badge"></a>
 </p>
 
