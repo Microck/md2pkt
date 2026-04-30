@@ -1,5 +1,5 @@
 <p align="center">
-  <img src=".github/assets/md2pkt-logo-v2.png" alt="md2pkt" width="720">
+  <img src=".github/assets/md2pkt-logo-v2.png" alt="md2pkt" width="420">
 </p>
 
 <p align="center">
