@@ -1,6 +1,6 @@
 {
   "name": "md2pkt",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Convert Markdown or text-based PDF network instructions into Cisco Packet Tracer .pkt files.",
   "license": "MIT",
   "type": "commonjs",

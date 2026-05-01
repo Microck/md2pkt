@@ -11,7 +11,7 @@ const program = new Command();
 program
   .name("md2pkt")
   .description("Convert Markdown or text-based PDF network instructions into Cisco Packet Tracer .pkt files.")
-  .version("0.1.0");
+  .version("0.1.1");
 
 program
   .command("build")

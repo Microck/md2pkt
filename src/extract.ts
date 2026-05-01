@@ -1,5 +1,6 @@
 import { extname } from "node:path";
 import { readFile } from "node:fs/promises";
+import { TextDecoder } from "node:util";
 import { commandExists, runCommand } from "./run-command";
 
 export type SourceKind = "markdown" | "pdf";
@@ -17,7 +18,7 @@ export async function extractInstructions(path: string): Promise<ExtractedInstru
     return {
       path,
       kind: "markdown",
-      markdown: await readFile(path, "utf8")
+      markdown: await readMarkdownInput(path)
     };
   }
 
@@ -30,6 +31,28 @@ export async function extractInstructions(path: string): Promise<ExtractedInstru
   }
 
   throw new Error(`Unsupported input type "${extension}". Use .md, .markdown, .txt, or text-based .pdf.`);
+}
+
+async function readMarkdownInput(path: string): Promise<string> {
+  const bytes = await readFile(path);
+  let markdown: string;
+
+  try {
+    markdown = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw new Error(`${path} does not look like Markdown or UTF-8 text.`);
+  }
+
+  const trimmed = markdown.trim();
+  if (!trimmed) {
+    throw new Error(`${path} does not contain any instructions.`);
+  }
+
+  if (trimmed.startsWith("%PDF-") || markdown.includes("\0")) {
+    throw new Error(`${path} does not look like Markdown or UTF-8 text.`);
+  }
+
+  return markdown;
 }
 
 async function extractPdfWithMarkItDown(path: string): Promise<string> {

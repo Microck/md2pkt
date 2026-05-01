@@ -32,7 +32,7 @@ export async function planTopology(input: PlanInput): Promise<TopologySpec> {
     if (codexPlan) return codexPlan;
   }
 
-  if (process.env.OPENAI_API_KEY) {
+  if (process.env.OPENAI_API_KEY?.trim()) {
     const apiPlan = await planWithOpenAiApi(input, baseline).catch(error => {
       baseline.warnings.push(`OpenAI API engine failed and deterministic inference was used: ${error instanceof Error ? error.message : String(error)}`);
       return undefined;
@@ -79,7 +79,7 @@ async function planWithCodex(input: PlanInput, baseline: TopologySpec): Promise<
 }
 
 async function planWithOpenAiApi(input: PlanInput, baseline: TopologySpec): Promise<TopologySpec> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not set.");
   }
@@ -136,18 +136,55 @@ function parsePlannedSpec(text: string, engine: string, input: PlanInput): Topol
   };
 }
 
-function extractJsonObject(text: string): string {
+export function extractJsonObject(text: string): string {
   const trimmed = text.trim();
-  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-    return trimmed;
+  const candidates: string[] = [];
+  let start = -1;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = 0; index < trimmed.length; index += 1) {
+    const char = trimmed[index];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === "\"") {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === "\"") {
+      inString = true;
+      continue;
+    }
+
+    if (char === "{") {
+      if (depth === 0) {
+        start = index;
+      }
+      depth += 1;
+      continue;
+    }
+
+    if (char === "}" && depth > 0) {
+      depth -= 1;
+      if (depth === 0 && start !== -1) {
+        candidates.push(trimmed.slice(start, index + 1));
+        start = -1;
+      }
+    }
   }
 
-  const start = trimmed.indexOf("{");
-  const end = trimmed.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) {
+  const jsonText = candidates.at(-1);
+  if (!jsonText) {
     throw new Error("Planner response did not contain a JSON object.");
   }
-  return trimmed.slice(start, end + 1);
+  return jsonText;
 }
 
 export async function writeBaselineSchema(path: string): Promise<void> {

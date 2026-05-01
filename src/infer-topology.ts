@@ -103,13 +103,23 @@ export function inferTopology(markdown: string, sourcePath: string, sourceKind: 
     });
   }
 
+  const hostsByLan = new Map<string, string[]>();
+  devices.forEach(device => {
+    if (!device.lan || (device.type !== "pc" && device.type !== "server")) {
+      return;
+    }
+    const hosts = hostsByLan.get(device.lan) ?? [];
+    hosts.push(device.id);
+    hostsByLan.set(device.lan, hosts);
+  });
+
   for (let index = 1; index <= hints.routers; index += 1) {
     const lanId = `LAN${index}`;
     const router = `R${index}`;
     const sw = `SW${Math.min(index, switchCount)}`;
     const subnet = `192.168.${index - 1}.0/24`;
     const gateway = `192.168.${index - 1}.1`;
-    const lanHosts = devices.filter(device => device.lan === lanId && (device.type === "pc" || device.type === "server")).map(device => device.id);
+    const lanHosts = hostsByLan.get(lanId) ?? [];
 
     lans.push({ id: lanId, router, switch: sw, hosts: lanHosts, subnet, gateway });
     interfaceAddresses.push({
@@ -245,7 +255,7 @@ function inferCable(a: "router" | "switch" | "pc" | "server", b: "router" | "swi
 }
 
 function bucketIndex(itemIndex: number, itemCount: number, bucketCount: number): number {
-  if (itemCount === 0) return 1;
+  if (itemCount === 0 || bucketCount <= 0) return 1;
   return Math.min(bucketCount, Math.floor(((itemIndex - 1) * bucketCount) / itemCount) + 1);
 }
 

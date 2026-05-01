@@ -22,4 +22,16 @@ describe("inferTopology", () => {
     expect(spec.devices.filter(device => device.type === "pc")).toHaveLength(2);
     expect(spec.assumptions.length).toBeGreaterThan(0);
   });
+
+  it("keeps generated host links and LAN host lists aligned", () => {
+    const spec = inferTopology("Build 4 routers, 4 switches, 8 PCs, and 4 servers.", "large.md", "markdown");
+
+    const accessLinkHosts = spec.links
+      .filter(link => link.to.startsWith("PC") || link.to.startsWith("SRV"))
+      .map(link => link.to)
+      .sort();
+    const lanHosts = spec.lans.flatMap(lan => lan.hosts).sort();
+
+    expect(lanHosts).toEqual(accessLinkHosts);
+  });
 });
