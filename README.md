@@ -28,6 +28,12 @@ Packet Tracer labs often start as a paragraph, rubric, or PDF assignment. `md2pk
 
 ## quickstart
 
+install the CLI:
+
+```bash
+npm install -g md2pkt
+```
+
 from a checkout:
 
 ```bash
