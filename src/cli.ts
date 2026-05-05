@@ -44,8 +44,8 @@ bridge
   .command("install")
   .description("Write the PTBuilder bootstrap script and show manual Packet Tracer setup instructions.")
   .action(async () => {
-    const path = await installBridgeBootstrap();
-    process.stdout.write(`Wrote ${path}\n\nPaste this into Packet Tracer Extensions -> Builder Code Editor and run it:\n\n${bridgeBootstrapScript()}`);
+    const install = await installBridgeBootstrap();
+    process.stdout.write(bridgeInstallInstructions(install.builderPtsPath, install.bootstrapPath));
   });
 
 bridge
@@ -54,6 +54,9 @@ bridge
   .action(async () => {
     const status = await getBridgeStatus();
     process.stdout.write(`${status.ok ? "ok" : "fail"} ${status.url}: ${status.detail}\n`);
+    if (status.ok && status.packetTracerConnected === false) {
+      process.stdout.write(`\nPacket Tracer is not polling the bridge. Run "md2pkt bridge install" and install the printed Builder.pts file in Packet Tracer.\n`);
+    }
     if (!status.ok) process.exitCode = 1;
   });
 
@@ -61,8 +64,8 @@ bridge
   .command("repair")
   .description("Rewrite the PTBuilder bootstrap script.")
   .action(async () => {
-    const path = await repairBridge();
-    process.stdout.write(`Rewrote ${path}\n`);
+    const install = await repairBridge();
+    process.stdout.write(`Rewrote ${install.bootstrapPath}\nCopied ${install.builderPtsPath}\n`);
   });
 
 const contextMenu = program.command("context-menu").description("Manage Windows Explorer right-click entries.");
@@ -94,4 +97,19 @@ function parseEngine(value: string): BuildEngine {
     throw new Error(`Invalid engine "${value}". Use auto, codex, or api.`);
   }
   return parsed.data;
+}
+
+function bridgeInstallInstructions(builderPtsPath: string, bootstrapPath: string): string {
+  return [
+    `Copied PTBuilder module: ${builderPtsPath}`,
+    `Wrote bootstrap script: ${bootstrapPath}`,
+    "",
+    "Packet Tracer setup:",
+    "1. Open Extensions -> Scripting -> Configure PT Script Modules.",
+    `2. Add this file: ${builderPtsPath}`,
+    "3. Open Extensions -> Builder Code Editor.",
+    "4. Paste and run this bootstrap once:",
+    "",
+    bridgeBootstrapScript()
+  ].join("\n");
 }

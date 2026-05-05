@@ -26,6 +26,7 @@
   },
   "files": [
     ".github/assets",
+    "assets",
     "dist",
     "LICENSE",
     "README.md",

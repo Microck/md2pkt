@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { mkdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 export const defaultBridgeUrl = "http://127.0.0.1:54321";
@@ -9,6 +9,12 @@ export interface BridgeStatus {
   ok: boolean;
   url: string;
   detail: string;
+  packetTracerConnected?: boolean;
+}
+
+export interface BridgeInstall {
+  bootstrapPath: string;
+  builderPtsPath: string;
 }
 
 export async function getBridgeStatus(url = process.env.MD2PKT_BRIDGE_URL ?? defaultBridgeUrl): Promise<BridgeStatus> {
@@ -17,32 +23,56 @@ export async function getBridgeStatus(url = process.env.MD2PKT_BRIDGE_URL ?? def
     if (!response.ok) {
       return { ok: false, url, detail: `HTTP ${response.status}` };
     }
-    return { ok: true, url, detail: await response.text() };
+    const detail = await response.text();
+    const packetTracerConnected = parsePacketTracerConnected(detail);
+    return packetTracerConnected === undefined
+      ? { ok: true, url, detail }
+      : { ok: true, url, detail, packetTracerConnected };
   } catch (error) {
     return { ok: false, url, detail: error instanceof Error ? error.message : String(error) };
   }
 }
 
 export async function enqueueBuild(script: string, outPath: string, url = process.env.MD2PKT_BRIDGE_URL ?? defaultBridgeUrl): Promise<void> {
-  const response = await fetch(`${url}/enqueue`, {
+  const enqueueResponse = await fetch(`${url}/enqueue`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ script, out: outPath })
   });
 
-  if (!response.ok) {
-    throw new Error(`Bridge rejected build with HTTP ${response.status}: ${await response.text()}`);
+  if (enqueueResponse.ok) {
+    return;
+  }
+
+  const enqueueBody = await enqueueResponse.text();
+  if (enqueueResponse.status !== 404) {
+    throw new Error(`Bridge rejected build with HTTP ${enqueueResponse.status}: ${enqueueBody}`);
+  }
+
+  const queueResponse = await fetch(`${url}/queue`, {
+    method: "POST",
+    headers: { "content-type": "text/plain; charset=utf-8" },
+    body: script
+  });
+
+  if (!queueResponse.ok) {
+    throw new Error([
+      `Bridge rejected build with HTTP ${enqueueResponse.status}: ${enqueueBody}`,
+      `Fallback /queue also failed with HTTP ${queueResponse.status}: ${await queueResponse.text()}`
+    ].join("\n"));
   }
 }
 
-export async function installBridgeBootstrap(targetDir = defaultBootstrapDir()): Promise<string> {
+export async function installBridgeBootstrap(targetDir = defaultBootstrapDir()): Promise<BridgeInstall> {
   await mkdir(targetDir, { recursive: true });
   const bootstrapPath = join(targetDir, "ptbuilder-bootstrap.js");
+  const builderPtsPath = join(targetDir, "Builder.pts");
   await writeFile(bootstrapPath, bridgeBootstrapScript(), "utf8");
-  return bootstrapPath;
+  await copyFile(bundledBuilderPtsPath(), builderPtsPath);
+  return { bootstrapPath, builderPtsPath };
 }
 
-export async function repairBridge(targetDir = defaultBootstrapDir()): Promise<string> {
+export async function repairBridge(targetDir = defaultBootstrapDir()): Promise<BridgeInstall> {
   return installBridgeBootstrap(targetDir);
 }
 
@@ -71,6 +101,13 @@ export function startFakeBridge(port = 54321): Promise<{ url: string; close: () 
       send(response, 200, "queued");
       return;
     }
+    if (request.method === "POST" && request.url === "/queue") {
+      const script = await readBody(request);
+      received.push({ script, out: "" });
+      queue.push(script);
+      send(response, 200, "queued");
+      return;
+    }
     send(response, 404, "not found");
   });
 
@@ -94,6 +131,19 @@ function defaultBootstrapDir(): string {
     return join(process.env.LOCALAPPDATA ?? process.cwd(), "md2pkt");
   }
   return join(process.cwd(), ".md2pkt");
+}
+
+function bundledBuilderPtsPath(): string {
+  return join(__dirname, "..", "assets", "Builder.pts");
+}
+
+function parsePacketTracerConnected(detail: string): boolean | undefined {
+  try {
+    const parsed = JSON.parse(detail) as { connected?: unknown };
+    return typeof parsed.connected === "boolean" ? parsed.connected : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function readBody(request: IncomingMessage): Promise<string> {

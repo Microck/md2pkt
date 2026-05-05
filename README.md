@@ -48,7 +48,9 @@ install the Packet Tracer bridge bootstrap:
 md2pkt bridge install
 ```
 
-open Cisco Packet Tracer, go to **Extensions -> Builder Code Editor**, paste the printed bootstrap script, and run it. then build a lab:
+open Cisco Packet Tracer, go to **Extensions -> Scripting -> Configure PT Script Modules**,
+add the printed `Builder.pts` path, then open **Extensions -> Builder Code Editor**,
+paste the printed bootstrap script, and run it. then build a lab:
 
 ```bash
 md2pkt build assignment.md --out assignment.pkt --engine auto
@@ -72,7 +74,7 @@ text-based PDFs are in scope for v1. scanned PDFs need OCR before `md2pkt` can r
 | --- | --- |
 | `md2pkt build <file> --out <file.pkt>` | convert an assignment into a queued Packet Tracer build |
 | `md2pkt doctor` | check Node.js, Codex, MarkItDown, OpenAI API, bridge, and Packet Tracer signals |
-| `md2pkt bridge install` | write the PTBuilder bootstrap script and print setup instructions |
+| `md2pkt bridge install` | copy `Builder.pts`, write the PTBuilder bootstrap script, and print setup instructions |
 | `md2pkt bridge status` | check the local bridge endpoint |
 | `md2pkt bridge repair` | rewrite the bootstrap script |
 | `md2pkt context-menu install` | add Explorer right-click actions for `.md` and `.pdf` |
@@ -117,6 +119,9 @@ the bridge protocol is intentionally small:
 | `GET /status` | reports bridge health |
 | `POST /enqueue` | accepts `{ "script": "...", "out": "C:\\path\\file.pkt" }` |
 | `GET /next` | returns the next PTBuilder script for Packet Tracer to run |
+
+If a running Packet Tracer MCP bridge exposes `POST /queue` instead of `POST /enqueue`,
+`md2pkt build` falls back to posting the raw PTBuilder JavaScript to `/queue`.
 
 the Packet Tracer side polls `/next` from the Builder Code Editor and runs returned JavaScript through `$se('runCode', ...)`.
 
